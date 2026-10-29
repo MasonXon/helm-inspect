@@ -107,8 +107,14 @@ func runVerify(images []string, asJSON, stream bool, workers int, mode string) e
 // verifyStreaming prints each result as it completes: one table row, or one
 // JSON object per line (NDJSON) when asJSON is set.
 func verifyStreaming(images []string, workers int, mode string, asJSON, archMode bool) []ImageCheck {
+	imageWidth := len("IMAGE")
+	for _, img := range images {
+		if len(img) > imageWidth {
+			imageWidth = len(img)
+		}
+	}
 	if !asJSON {
-		streamTableHeader(archMode)
+		streamTableHeader(imageWidth, archMode)
 	}
 	emit := func(r ImageCheck) {
 		if asJSON {
@@ -116,7 +122,7 @@ func verifyStreaming(images []string, workers int, mode string, asJSON, archMode
 			fmt.Fprintln(os.Stdout, string(b))
 			return
 		}
-		streamTableRow(r, archMode)
+		streamTableRow(r, imageWidth, archMode)
 		if r.Error != "" {
 			fmt.Fprintf(os.Stderr, "  %s: %s\n", r.Image, r.Error)
 		}
@@ -369,18 +375,19 @@ func printVerifyTable(results []ImageCheck, archMode bool) {
 	}
 }
 
-func streamTableHeader(archMode bool) {
+func streamTableHeader(imageWidth int, archMode bool) {
 	if archMode {
-		fmt.Printf("%-52s %-7s %-6s %-6s %-11s %-11s %s\n",
-			"IMAGE", "EXISTS", "AMD64", "ARM64", "AMD64 SIZE", "ARM64 SIZE", "STATUS")
+		fmt.Printf("%-*s  %-6s  %-5s  %-5s  %-12s  %-12s  %s\n",
+			imageWidth, "IMAGE", "EXISTS", "AMD64", "ARM64", "AMD64 SIZE", "ARM64 SIZE", "STATUS")
 	} else {
-		fmt.Printf("%-52s %-7s %s\n", "IMAGE", "EXISTS", "STATUS")
+		fmt.Printf("%-*s  %-6s  %s\n", imageWidth, "IMAGE", "EXISTS", "STATUS")
 	}
 }
 
-func streamTableRow(r ImageCheck, archMode bool) {
+func streamTableRow(r ImageCheck, imageWidth int, archMode bool) {
 	if archMode {
-		fmt.Printf("%-52s %-7s %-6s %-6s %-11s %-11s %s\n",
+		fmt.Printf("%-*s  %-6s  %-5s  %-5s  %-12s  %-12s  %s\n",
+			imageWidth,
 			r.Image,
 			yesNo(r.Exists),
 			yesNo(r.HasAMD64),
@@ -390,7 +397,7 @@ func streamTableRow(r ImageCheck, archMode bool) {
 			checkStatus(r, true),
 		)
 	} else {
-		fmt.Printf("%-52s %-7s %s\n", r.Image, yesNo(r.Exists), checkStatus(r, false))
+		fmt.Printf("%-*s  %-6s  %s\n", imageWidth, r.Image, yesNo(r.Exists), checkStatus(r, false))
 	}
 }
 
