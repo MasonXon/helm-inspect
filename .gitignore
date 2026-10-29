@@ -1,0 +1,14 @@
+# Build artifacts
+/helm2yaml
+*.exe
+*.test
+*.out
+
+# Rendered chart output
+render*.yaml
+*.tgz
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
