@@ -124,6 +124,14 @@ func renderChart(chrt *chart.Chart, f commonFlags) error {
 		fmt.Fprintf(&out, "---\n# Source: %s\n%s\n", h.Path, h.Manifest)
 	}
 
+	if f.Verify {
+		images, err := extractImages(out.String(), f.ImagesAll)
+		if err != nil {
+			return err
+		}
+		return runVerify(images, f.JSON, f.Workers, f.VerifyMode)
+	}
+
 	if f.Images || f.ImagesAll {
 		images, err := extractImages(out.String(), f.ImagesAll)
 		if err != nil {

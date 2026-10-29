@@ -26,6 +26,7 @@ func main() {
 type CLI struct {
 	Remote  RemoteCmd  `cmd:"" help:"Render a chart from a remote repository at a specific version."`
 	Local   LocalCmd   `cmd:"" help:"Render a local chart directory or packaged .tgz file."`
+	Verify  VerifyCmd  `cmd:"" help:"Verify images exist and support linux/amd64 and linux/arm64."`
 	Version VersionCmd `cmd:"" help:"Print version."`
 }
 
@@ -42,6 +43,10 @@ type commonFlags struct {
 	IncludeCRDs bool     `name:"include-crds" help:"Include CRDs from the chart's crds/ directory." default:"true" negatable:"true"`
 	Images      bool     `help:"Print the deduplicated container image list instead of YAML."`
 	ImagesAll   bool     `name:"images-all" help:"Like --images, but also scan ConfigMaps/annotations/env for image-like values."`
+	Verify      bool     `help:"Verify the collected images (existence, linux/amd64+arm64, size sanity) instead of printing YAML."`
+	VerifyMode  string   `name:"mode" enum:"exists,arch" default:"arch" help:"With --verify: exists (existence only) or arch (existence + linux/amd64/arm64)."`
+	JSON        bool     `name:"json" help:"With --verify, output JSON instead of a table."`
+	Workers     int      `help:"With --verify, number of concurrent checks." default:"8"`
 	Output      string   `short:"o" help:"Write output to this file (empty or '-' writes to stdout)."`
 }
 
