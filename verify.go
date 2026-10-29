@@ -31,7 +31,8 @@ const imageCheckTimeout = 30 * time.Second
 type VerifyCmd struct {
 	Images  []string `arg:"" optional:"" help:"Image references to verify."`
 	File    string   `short:"f" help:"Read images from a file, one per line ('-' for stdin)."`
-	Mode    string   `enum:"exists,arch" default:"arch" help:"exists: existence only; arch: existence + linux/amd64/arm64 (+ size sanity)."`
+	Mode    string   `enum:"exists,arch" default:"exists" help:"exists: existence only; arch: existence + linux/amd64/arm64 (+ size sanity)."`
+	Stream  bool     `help:"Print results as each image completes (NDJSON when combined with --json)."`
 	JSON    bool     `name:"json" help:"Output results as JSON."`
 	Workers int      `help:"Number of concurrent checks." default:"8"`
 }
@@ -42,7 +43,7 @@ func (c *VerifyCmd) Run() error {
 	if err != nil {
 		return err
 	}
-	return runVerify(images, c.JSON, c.Workers, c.Mode)
+	return runVerify(images, c.JSON, c.Stream, c.Workers, c.Mode)
 }
 
 // ImageCheck is the result of verifying a single image reference.
@@ -67,22 +68,28 @@ const (
 )
 
 // runVerify verifies images and prints a table or JSON, returning a non-nil
-// error when any image fails the selected checks.
-func runVerify(images []string, asJSON bool, workers int, mode string) error {
+// error when any image fails the selected checks. When stream is true, results
+// are printed as each image completes instead of after all checks finish.
+func runVerify(images []string, asJSON, stream bool, workers int, mode string) error {
 	if len(images) == 0 {
 		return errors.New("no images to verify")
 	}
+	archMode := mode == modeArch
 
-	results := verifyImages(context.Background(), images, workers, mode)
-
-	if asJSON {
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetIndent("", "  ")
-		if err := enc.Encode(results); err != nil {
-			return err
-		}
+	var results []ImageCheck
+	if stream {
+		results = verifyStreaming(images, workers, mode, asJSON, archMode)
 	} else {
-		printVerifyTable(results, mode == modeArch)
+		results = verifyImages(context.Background(), images, workers, mode, nil)
+		if asJSON {
+			enc := json.NewEncoder(os.Stdout)
+			enc.SetIndent("", "  ")
+			if err := enc.Encode(results); err != nil {
+				return err
+			}
+		} else {
+			printVerifyTable(results, archMode)
+		}
 	}
 
 	failed := 0
@@ -97,21 +104,49 @@ func runVerify(images []string, asJSON bool, workers int, mode string) error {
 	return nil
 }
 
-// verifyImages checks images concurrently while preserving input order.
-func verifyImages(ctx context.Context, images []string, workers int, mode string) []ImageCheck {
+// verifyStreaming prints each result as it completes: one table row, or one
+// JSON object per line (NDJSON) when asJSON is set.
+func verifyStreaming(images []string, workers int, mode string, asJSON, archMode bool) []ImageCheck {
+	if !asJSON {
+		streamTableHeader(archMode)
+	}
+	emit := func(r ImageCheck) {
+		if asJSON {
+			b, _ := json.Marshal(r)
+			fmt.Fprintln(os.Stdout, string(b))
+			return
+		}
+		streamTableRow(r, archMode)
+		if r.Error != "" {
+			fmt.Fprintf(os.Stderr, "  %s: %s\n", r.Image, r.Error)
+		}
+	}
+	return verifyImages(context.Background(), images, workers, mode, emit)
+}
+
+// verifyImages checks images concurrently while preserving input order. If
+// emit is non-nil it is called (serialized) for each result as it completes.
+func verifyImages(ctx context.Context, images []string, workers int, mode string, emit func(ImageCheck)) []ImageCheck {
 	if workers < 1 {
 		workers = 1
 	}
 	results := make([]ImageCheck, len(images))
 	sem := make(chan struct{}, workers)
 	var wg sync.WaitGroup
+	var emitMu sync.Mutex
 	for i, img := range images {
 		wg.Add(1)
 		sem <- struct{}{}
 		go func(i int, img string) {
 			defer wg.Done()
 			defer func() { <-sem }()
-			results[i] = checkImage(ctx, img, mode)
+			r := checkImage(ctx, img, mode)
+			results[i] = r
+			if emit != nil {
+				emitMu.Lock()
+				emit(r)
+				emitMu.Unlock()
+			}
 		}(i, img)
 	}
 	wg.Wait()
@@ -331,6 +366,31 @@ func printVerifyTable(results []ImageCheck, archMode bool) {
 		if r.Error != "" {
 			fmt.Fprintf(os.Stderr, "  %s: %s\n", r.Image, r.Error)
 		}
+	}
+}
+
+func streamTableHeader(archMode bool) {
+	if archMode {
+		fmt.Printf("%-52s %-7s %-6s %-6s %-11s %-11s %s\n",
+			"IMAGE", "EXISTS", "AMD64", "ARM64", "AMD64 SIZE", "ARM64 SIZE", "STATUS")
+	} else {
+		fmt.Printf("%-52s %-7s %s\n", "IMAGE", "EXISTS", "STATUS")
+	}
+}
+
+func streamTableRow(r ImageCheck, archMode bool) {
+	if archMode {
+		fmt.Printf("%-52s %-7s %-6s %-6s %-11s %-11s %s\n",
+			r.Image,
+			yesNo(r.Exists),
+			yesNo(r.HasAMD64),
+			yesNo(r.HasARM64),
+			humanSize(r.AMD64Size),
+			humanSize(r.ARM64Size),
+			checkStatus(r, true),
+		)
+	} else {
+		fmt.Printf("%-52s %-7s %s\n", r.Image, yesNo(r.Exists), checkStatus(r, false))
 	}
 }
 

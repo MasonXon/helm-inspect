@@ -129,7 +129,7 @@ func renderChart(chrt *chart.Chart, f commonFlags) error {
 		if err != nil {
 			return err
 		}
-		return runVerify(images, f.JSON, f.Workers, f.VerifyMode)
+		return runVerify(images, f.JSON, f.Stream, f.Workers, f.VerifyMode)
 	}
 
 	if f.Images || f.ImagesAll {

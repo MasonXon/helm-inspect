@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"sync"
 	"testing"
 
 	"github.com/google/go-containerregistry/pkg/name"
@@ -175,6 +176,31 @@ func TestCheckImageExistsMode(t *testing.T) {
 	got = checkImage(context.Background(), missing.String(), modeExists)
 	if got.Exists || got.OK || !got.NotFound {
 		t.Fatalf("exists mode missing = %+v, want not found", got)
+	}
+}
+
+func TestVerifyImagesEmits(t *testing.T) {
+	host := startRegistry(t)
+	refs := []string{
+		pushSingleArch(t, host, "app/a", "amd64"),
+		pushIndex(t, host, "app/b", 1, 2),
+	}
+
+	var mu sync.Mutex
+	emitted := map[string]bool{}
+	results := verifyImages(context.Background(), refs, 4, modeArch, func(r ImageCheck) {
+		mu.Lock()
+		emitted[r.Image] = true
+		mu.Unlock()
+	})
+
+	if len(results) != 2 {
+		t.Fatalf("got %d results, want 2", len(results))
+	}
+	for _, ref := range refs {
+		if !emitted[ref] {
+			t.Errorf("result for %s was not emitted", ref)
+		}
 	}
 }
 

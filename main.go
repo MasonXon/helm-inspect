@@ -44,8 +44,9 @@ type commonFlags struct {
 	Images      bool     `help:"Print the deduplicated container image list instead of YAML."`
 	ImagesAll   bool     `name:"images-all" help:"Like --images, but also scan ConfigMaps/annotations/env for image-like values."`
 	Verify      bool     `help:"Verify the collected images (existence, linux/amd64+arm64, size sanity) instead of printing YAML."`
-	VerifyMode  string   `name:"mode" enum:"exists,arch" default:"arch" help:"With --verify: exists (existence only) or arch (existence + linux/amd64/arm64)."`
+	VerifyMode  string   `name:"mode" enum:"exists,arch" default:"exists" help:"With --verify: exists (existence only) or arch (existence + linux/amd64/arm64)."`
 	JSON        bool     `name:"json" help:"With --verify, output JSON instead of a table."`
+	Stream      bool     `help:"With --verify, print results as each image completes."`
 	Workers     int      `help:"With --verify, number of concurrent checks." default:"8"`
 	Output      string   `short:"o" help:"Write output to this file (empty or '-' writes to stdout)."`
 }
