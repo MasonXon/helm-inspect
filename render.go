@@ -73,6 +73,15 @@ func (c *LocalCmd) Run() error {
 func renderChart(chrt *chart.Chart, f commonFlags) error {
 	settings := cli.New()
 
+	// The install action does not verify that the chart's dependencies are
+	// vendored, so without this check a chart with missing subcharts would
+	// render silently incomplete instead of failing.
+	if chrt.Metadata != nil {
+		if err := action.CheckDependencies(chrt, chrt.Metadata.Dependencies); err != nil {
+			return err
+		}
+	}
+
 	// Client-only mode means the install action never contacts a cluster; the
 	// chart is rendered entirely offline by the Helm engine.
 	cfg := &action.Configuration{
