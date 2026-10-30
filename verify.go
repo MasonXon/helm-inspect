@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"sort"
@@ -179,7 +180,10 @@ func checkImage(parent context.Context, refStr, mode string) ImageCheck {
 
 	if mode == modeExists {
 		// Existence only: one HEAD request, no manifest body, no arch lookup.
-		if _, err := remote.Head(ref, opts...); err != nil {
+		if err := withRetry(func() error {
+			_, err := remote.Head(ref, opts...)
+			return err
+		}); err != nil {
 			res.setFetchErr(err)
 			return res
 		}
@@ -188,8 +192,15 @@ func checkImage(parent context.Context, refStr, mode string) ImageCheck {
 		return res
 	}
 
-	desc, err := remote.Get(ref, opts...)
-	if err != nil {
+	var desc *remote.Descriptor
+	if err := withRetry(func() error {
+		d, err := remote.Get(ref, opts...)
+		if err != nil {
+			return err
+		}
+		desc = d
+		return nil
+	}); err != nil {
 		res.setFetchErr(err)
 		return res
 	}
@@ -309,6 +320,39 @@ func (r *ImageCheck) setFetchErr(err error) {
 		return
 	}
 	r.Error = err.Error()
+}
+
+// withRetry runs fn and retries it once when it fails with a transient
+// network error.
+func withRetry(fn func() error) error {
+	err := fn()
+	if err == nil || !isTransient(err) {
+		return err
+	}
+	return fn()
+}
+
+// isTransient reports whether err is worth retrying: network timeouts,
+// connection resets and registry-side 5xx/429 responses.
+func isTransient(err error) bool {
+	if err == nil {
+		return false
+	}
+	var terr *transport.Error
+	if errors.As(err, &terr) {
+		return terr.StatusCode == http.StatusTooManyRequests || terr.StatusCode >= 500
+	}
+	var netErr net.Error
+	if errors.As(err, &netErr) {
+		return true
+	}
+	msg := err.Error()
+	for _, s := range []string{"TLS handshake timeout", "connection reset", "unexpected EOF", "i/o timeout", "no such host"} {
+		if strings.Contains(msg, s) {
+			return true
+		}
+	}
+	return false
 }
 
 // imageSize returns the compressed storage size (config + layers) of an image.

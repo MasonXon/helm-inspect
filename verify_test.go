@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log"
 	"net/http/httptest"
@@ -19,6 +20,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/mutate"
 	"github.com/google/go-containerregistry/pkg/v1/random"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
+	"github.com/google/go-containerregistry/pkg/v1/remote/transport"
 )
 
 func startRegistry(t *testing.T) string {
@@ -221,11 +223,11 @@ func TestHasPlatform(t *testing.T) {
 
 func TestHumanSize(t *testing.T) {
 	cases := map[int64]string{
-		0:                 "-",
-		512:               "512 B",
-		1024:              "1.0 KB",
-		1024 * 1024:       "1.0 MB",
-		3 * 1024 * 1024:   "3.0 MB",
+		0:               "-",
+		512:             "512 B",
+		1024:            "1.0 KB",
+		1024 * 1024:     "1.0 MB",
+		3 * 1024 * 1024: "3.0 MB",
 	}
 	for n, want := range cases {
 		if got := humanSize(n); got != want {
@@ -253,6 +255,56 @@ func TestCheckStatus(t *testing.T) {
 	// In exists mode a bare existing image is "ok" even without arch info.
 	if got := checkStatus(ImageCheck{Exists: true}, false); got != "ok" {
 		t.Errorf("checkStatus(exists mode) = %q, want ok", got)
+	}
+}
+
+func TestIsTransient(t *testing.T) {
+	cases := []struct {
+		err  error
+		want bool
+	}{
+		{nil, false},
+		{errors.New("unexpected EOF"), true},
+		{errors.New("dial tcp: lookup quay.io: no such host"), true},
+		{errors.New("boom"), false},
+		{&transport.Error{StatusCode: 503}, true},
+		{&transport.Error{StatusCode: 429}, true},
+		{&transport.Error{StatusCode: 404}, false},
+	}
+	for _, tc := range cases {
+		if got := isTransient(tc.err); got != tc.want {
+			t.Errorf("isTransient(%v) = %v, want %v", tc.err, got, tc.want)
+		}
+	}
+}
+
+func TestWithRetry(t *testing.T) {
+	calls := 0
+	err := withRetry(func() error {
+		calls++
+		if calls == 1 {
+			return errors.New("unexpected EOF")
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("withRetry returned %v, want nil", err)
+	}
+	if calls != 2 {
+		t.Errorf("withRetry made %d calls, want 2", calls)
+	}
+
+	calls = 0
+	wantErr := errors.New("permanent")
+	err = withRetry(func() error {
+		calls++
+		return wantErr
+	})
+	if !errors.Is(err, wantErr) {
+		t.Errorf("withRetry returned %v, want %v", err, wantErr)
+	}
+	if calls != 1 {
+		t.Errorf("withRetry made %d calls for a non-transient error, want 1", calls)
 	}
 }
 
