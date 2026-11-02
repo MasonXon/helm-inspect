@@ -1,4 +1,4 @@
-package main
+package images
 
 import (
 	"reflect"
@@ -29,7 +29,7 @@ data:
   endpoint: 192.168.1.1:8080
   imagePullPolicy: Always
 `
-	got, err := extractImages(manifest, true)
+	got, err := Extract(manifest, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,12 +44,12 @@ data:
 	}
 
 	// Strict mode only reports values under an "image" key.
-	strict, err := extractImages(manifest, false)
+	strict, err := Extract(manifest, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(strict) != 2 {
-		t.Errorf("extractImages(strict) = %v, want 2 container images", strict)
+		t.Errorf("Extract(strict) = %v, want 2 container images", strict)
 	}
 }
 

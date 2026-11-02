@@ -1,4 +1,4 @@
-package main
+package verify
 
 import (
 	"bytes"
@@ -44,7 +44,7 @@ func (c *VerifyCmd) Run() error {
 	if err != nil {
 		return err
 	}
-	return runVerify(images, c.JSON, c.Stream, c.Workers, c.Mode)
+	return Run(images, c.JSON, c.Stream, c.Workers, c.Mode)
 }
 
 // ImageCheck is the result of verifying a single image reference.
@@ -68,10 +68,10 @@ const (
 	modeArch   = "arch"   // existence + linux/amd64/arm64 (+ size sanity)
 )
 
-// runVerify verifies images and prints a table or JSON, returning a non-nil
+// Run verifies images and prints a table or JSON, returning a non-nil
 // error when any image fails the selected checks. When stream is true, results
 // are printed as each image completes instead of after all checks finish.
-func runVerify(images []string, asJSON, stream bool, workers int, mode string) error {
+func Run(images []string, asJSON, stream bool, workers int, mode string) error {
 	if len(images) == 0 {
 		return errors.New("no images to verify")
 	}

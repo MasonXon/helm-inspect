@@ -1,4 +1,4 @@
-package main
+package images
 
 import (
 	"io"
@@ -13,11 +13,11 @@ import (
 // "repo", "repo:tag", "registry:5000/ns/repo:tag@sha256:<hex>".
 var imageRefRE = regexp.MustCompile(`^(?:[a-zA-Z0-9][a-zA-Z0-9._-]*(?::[0-9]+)?/)?[a-z0-9]+(?:[._-][a-z0-9]+)*(?:/[a-z0-9]+(?:[._-][a-z0-9]+)*)*(?::[a-zA-Z0-9_][a-zA-Z0-9._-]{0,127})?(?:@sha256:[a-f0-9]{64})?$`)
 
-// extractImages walks every YAML document in a rendered manifest and collects
+// Extract walks every YAML document in a rendered manifest and collects
 // image references. When deep is true it also scans arbitrary config values
 // (ConfigMaps, env, annotations, ...) for strings that look like image
 // references, not just values under an "image" key.
-func extractImages(manifest string, deep bool) ([]string, error) {
+func Extract(manifest string, deep bool) ([]string, error) {
 	dec := k8syaml.NewYAMLOrJSONDecoder(strings.NewReader(manifest), 4096)
 
 	seen := make(map[string]struct{})
@@ -132,9 +132,9 @@ func normalizeKey(k string) string {
 	return k
 }
 
-// formatImageList renders one image per line, with a trailing newline when
+// FormatList renders one image per line, with a trailing newline when
 // non-empty.
-func formatImageList(images []string) string {
+func FormatList(images []string) string {
 	if len(images) == 0 {
 		return ""
 	}

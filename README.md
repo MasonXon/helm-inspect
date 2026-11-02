@@ -24,7 +24,7 @@ client-only mode, so no Kubernetes cluster is contacted.
 
 ```bash
 # with Go 1.26+
-go install github.com/MasonXon/helm2yaml@latest
+go install github.com/MasonXon/helm2yaml/cmd/helm2yaml@latest
 
 # or build from source (host binary, upx-compressed where supported)
 make build
@@ -179,13 +179,13 @@ binaries are killed by the OS at startup, so the Makefile skips them.
 
 ## Project layout
 
-| File | Purpose |
+| Path | Purpose |
 | --- | --- |
-| `main.go` | CLI definition (kong): `remote`, `local`, `verify`, `version`. |
-| `render.go` | Chart download/load, dependency check, and offline Helm rendering. |
-| `images.go` | Image reference extraction and filtering from rendered YAML. |
-| `verify.go` | Registry checks, concurrency, retries, and table/JSON output. |
-| `*_test.go` | Unit and in-memory-registry integration tests. |
+| `cmd/helm2yaml/main.go` | CLI definition (kong) and version wiring. |
+| `internal/render/` | Chart download/load, dependency check, offline rendering; the `remote` and `local` commands. |
+| `internal/images/` | Image reference extraction and filtering from rendered YAML. |
+| `internal/verify/` | Registry checks, concurrency, retries, and table/JSON output; the `verify` command. |
+| `internal/*/*_test.go` | Unit and in-memory-registry integration tests. |
 | `Makefile` | Build, cross-compile (upx), test, vet, format, clean. |
 
 ## License

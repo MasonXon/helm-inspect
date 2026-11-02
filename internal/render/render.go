@@ -1,4 +1,4 @@
-package main
+package render
 
 import (
 	"fmt"
@@ -6,6 +6,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/MasonXon/helm2yaml/internal/images"
+	"github.com/MasonXon/helm2yaml/internal/verify"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
@@ -16,6 +18,43 @@ import (
 	"helm.sh/helm/v3/pkg/getter"
 	"helm.sh/helm/v3/pkg/repo"
 )
+
+// commonFlags are the rendering options shared by the remote and local commands.
+type commonFlags struct {
+	ValueFiles  []string `short:"f" help:"Values YAML file (may be repeated, comma-separated, a URL, or '-' for stdin)."`
+	SetValues   []string `name:"set" help:"Set values on the command line (key=val, comma-separated, repeatable)."`
+	SetString   []string `name:"set-string" help:"Set STRING values on the command line."`
+	SetFile     []string `name:"set-file" help:"Set values from files via key=path (repeatable)."`
+	SetJSON     []string `name:"set-json" help:"Set values from JSON via key=json (repeatable)."`
+	Namespace   string   `short:"n" help:"Kubernetes namespace used for rendering." default:"default"`
+	Name        string   `help:"Release name used for rendering." default:"release-name"`
+	KubeVersion string   `help:"Kubernetes version for capability checks, e.g. 1.29.3."`
+	IncludeCRDs bool     `name:"include-crds" help:"Include CRDs from the chart's crds/ directory." default:"true" negatable:"true"`
+	Images      bool     `help:"Print the deduplicated container image list instead of YAML."`
+	ImagesAll   bool     `name:"images-all" help:"Like --images, but also scan ConfigMaps/annotations/env for image-like values."`
+	Verify      bool     `help:"Verify the collected images (existence, linux/amd64+arm64, size sanity) instead of printing YAML."`
+	VerifyMode  string   `name:"mode" enum:"exists,arch" default:"exists" help:"With --verify: exists (existence only) or arch (existence + linux/amd64/arm64)."`
+	JSON        bool     `name:"json" help:"With --verify, output JSON instead of a table."`
+	Stream      bool     `help:"With --verify, print results as each image completes."`
+	Workers     int      `help:"With --verify, number of concurrent checks." default:"8"`
+	Output      string   `short:"o" help:"Write output to this file (empty or '-' writes to stdout)."`
+}
+
+// RemoteCmd renders a chart pulled from a chart repository.
+type RemoteCmd struct {
+	commonFlags
+	Repo     string `required:"" help:"Chart repository base URL, e.g. https://charts.bitnami.com/bitnami."`
+	Chart    string `required:"" help:"Chart name inside the repository."`
+	Version  string `required:"" help:"Chart version to render."`
+	Username string `help:"Basic auth username for the repository."`
+	Password string `help:"Basic auth password for the repository."`
+}
+
+// LocalCmd renders a chart from the local filesystem.
+type LocalCmd struct {
+	commonFlags
+	Path string `arg:"" help:"Path to a chart directory or packaged .tgz file."`
+}
 
 // Run downloads and renders a chart from a remote repository.
 func (c *RemoteCmd) Run() error {
@@ -134,19 +173,19 @@ func renderChart(chrt *chart.Chart, f commonFlags) error {
 	}
 
 	if f.Verify {
-		images, err := extractImages(out.String(), f.ImagesAll)
+		imgs, err := images.Extract(out.String(), f.ImagesAll)
 		if err != nil {
 			return err
 		}
-		return runVerify(images, f.JSON, f.Stream, f.Workers, f.VerifyMode)
+		return verify.Run(imgs, f.JSON, f.Stream, f.Workers, f.VerifyMode)
 	}
 
 	if f.Images || f.ImagesAll {
-		images, err := extractImages(out.String(), f.ImagesAll)
+		imgs, err := images.Extract(out.String(), f.ImagesAll)
 		if err != nil {
 			return err
 		}
-		return writeOutput(formatImageList(images), f.Output)
+		return writeOutput(images.FormatList(imgs), f.Output)
 	}
 
 	return writeOutput(out.String(), f.Output)
