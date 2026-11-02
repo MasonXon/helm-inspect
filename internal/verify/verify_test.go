@@ -269,6 +269,7 @@ func TestCheckStatus(t *testing.T) {
 		want string
 	}{
 		{ImageCheck{NotFound: true}, "NOT FOUND"},
+		{ImageCheck{Unauthorized: true}, "UNAUTHORIZED"},
 		{ImageCheck{Error: "boom"}, "ERROR"},
 		{ImageCheck{Exists: true, HasAMD64: true, HasARM64: false}, "MISSING ARCH"},
 		{ImageCheck{Exists: true, HasAMD64: true, HasARM64: true}, "ok"},
@@ -282,6 +283,27 @@ func TestCheckStatus(t *testing.T) {
 	// In exists mode a bare existing image is "ok" even without arch info.
 	if got := checkStatus(ImageCheck{Exists: true}, false); got != "ok" {
 		t.Errorf("checkStatus(exists mode) = %q, want ok", got)
+	}
+}
+
+func TestSetFetchErr(t *testing.T) {
+	cases := []struct {
+		status       int
+		notFound     bool
+		unauthorized bool
+		hasErr       bool
+	}{
+		{404, true, false, false},
+		{401, false, true, false},
+		{403, false, true, false},
+		{500, false, false, true},
+	}
+	for _, tc := range cases {
+		var r ImageCheck
+		r.setFetchErr(&transport.Error{StatusCode: tc.status})
+		if r.NotFound != tc.notFound || r.Unauthorized != tc.unauthorized || (r.Error != "") != tc.hasErr {
+			t.Errorf("status %d: got %+v", tc.status, r)
+		}
 	}
 }
 

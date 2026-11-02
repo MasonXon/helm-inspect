@@ -52,17 +52,18 @@ func (c *VerifyCmd) Run() error {
 
 // ImageCheck is the result of verifying a single image reference.
 type ImageCheck struct {
-	Image     string   `json:"image"`
-	Exists    bool     `json:"exists"`
-	NotFound  bool     `json:"notFound,omitempty"`
-	Error     string   `json:"error,omitempty"`
-	Platforms []string `json:"platforms,omitempty"`
-	HasAMD64  bool     `json:"hasAmd64"`
-	HasARM64  bool     `json:"hasArm64"`
-	AMD64Size int64    `json:"amd64Size,omitempty"`
-	ARM64Size int64    `json:"arm64Size,omitempty"`
-	SizeEqual bool     `json:"sizeEqual,omitempty"`
-	OK        bool     `json:"ok"`
+	Image        string   `json:"image"`
+	Exists       bool     `json:"exists"`
+	NotFound     bool     `json:"notFound,omitempty"`
+	Unauthorized bool     `json:"unauthorized,omitempty"`
+	Error        string   `json:"error,omitempty"`
+	Platforms    []string `json:"platforms,omitempty"`
+	HasAMD64     bool     `json:"hasAmd64"`
+	HasARM64     bool     `json:"hasArm64"`
+	AMD64Size    int64    `json:"amd64Size,omitempty"`
+	ARM64Size    int64    `json:"arm64Size,omitempty"`
+	SizeEqual    bool     `json:"sizeEqual,omitempty"`
+	OK           bool     `json:"ok"`
 }
 
 // Verification modes.
@@ -127,8 +128,8 @@ func verifyStreaming(images []string, workers int, mode string, asJSON, archMode
 			return
 		}
 		streamTableRow(r, imageWidth, archMode)
-		if r.Error != "" {
-			fmt.Fprintf(os.Stderr, "  %s: %s\n", r.Image, r.Error)
+		if detail := failureDetail(r); detail != "" {
+			fmt.Fprintf(os.Stderr, "  %s: %s\n", r.Image, detail)
 		}
 	}
 	return verifyImages(context.Background(), images, workers, mode, emit)
@@ -315,12 +316,21 @@ func checkImage(parent context.Context, refStr, mode string) ImageCheck {
 }
 
 // setFetchErr records a manifest/HEAD fetch error, distinguishing a clean 404
-// (not found) from other failures.
+// (not found) and 401/403 (no access) from other failures.
 func (r *ImageCheck) setFetchErr(err error) {
 	var terr *transport.Error
-	if errors.As(err, &terr) && terr.StatusCode == http.StatusNotFound {
-		r.NotFound = true
-		return
+	if errors.As(err, &terr) {
+		switch terr.StatusCode {
+		case http.StatusNotFound:
+			r.NotFound = true
+			return
+		case http.StatusUnauthorized, http.StatusForbidden:
+			// Docker Hub answers 401 for repositories that do not exist, using
+			// the same response as for private ones, so this is "missing or no
+			// access" rather than a hard error.
+			r.Unauthorized = true
+			return
+		}
 	}
 	r.Error = err.Error()
 }
@@ -416,10 +426,22 @@ func printVerifyTable(results []ImageCheck, archMode bool) {
 	tw.Flush()
 
 	for _, r := range results {
-		if r.Error != "" {
-			fmt.Fprintf(os.Stderr, "  %s: %s\n", r.Image, r.Error)
+		if detail := failureDetail(r); detail != "" {
+			fmt.Fprintf(os.Stderr, "  %s: %s\n", r.Image, detail)
 		}
 	}
+}
+
+// failureDetail returns the extra stderr line for a failed check, or "" when
+// the status already says everything (NOT FOUND / MISSING ARCH).
+func failureDetail(r ImageCheck) string {
+	if r.Error != "" {
+		return r.Error
+	}
+	if r.Unauthorized {
+		return "unauthorized (repository may not exist or requires credentials)"
+	}
+	return ""
 }
 
 func streamTableHeader(imageWidth int, archMode bool) {
@@ -453,6 +475,8 @@ func checkStatus(r ImageCheck, archMode bool) string {
 	switch {
 	case r.NotFound:
 		status = "NOT FOUND"
+	case r.Unauthorized:
+		status = "UNAUTHORIZED"
 	case r.Error != "":
 		status = "ERROR"
 	case archMode && (!r.HasAMD64 || !r.HasARM64):

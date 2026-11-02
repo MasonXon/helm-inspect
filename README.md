@@ -167,7 +167,9 @@ identical, the image was likely built incorrectly (one architecture copied onto
 the other). This is a warning only and does not fail the run.
 
 The command exits non-zero when any image is missing or (in `arch` mode) lacks a
-required architecture. A 404 is reported as `NOT FOUND`, other failures as
+required architecture. A 404 is reported as `NOT FOUND`; a 401/403 as
+`UNAUTHORIZED` (Docker Hub returns 401 for repositories that do not exist, so
+this usually means missing, or private without credentials); other failures as
 `ERROR` with the underlying message on stderr.
 
 ## Shared render flags
