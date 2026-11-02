@@ -75,9 +75,19 @@ func TestApplyDefaultRegistry(t *testing.T) {
 		t.Errorf("ApplyDefaultRegistry =\n%v\nwant\n%v", got, want)
 	}
 
-	// An empty registry leaves references untouched.
-	if got := ApplyDefaultRegistry(refs, "  "); !reflect.DeepEqual(got, refs) {
-		t.Errorf("ApplyDefaultRegistry(empty) = %v, want unchanged", got)
+	// Without a registry, bare names default to Docker Hub; single-component
+	// references get the implicit "library" namespace.
+	got = ApplyDefaultRegistry([]string{"nginx:1.25", "opencsghq/foo:1", "quay.io/a/b:1"}, "")
+	want = []string{"docker.io/library/nginx:1.25", "docker.io/opencsghq/foo:1", "quay.io/a/b:1"}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("ApplyDefaultRegistry(default) = %v, want %v", got, want)
+	}
+
+	// An explicit Docker Hub registry behaves the same way.
+	got = ApplyDefaultRegistry([]string{"nginx:1.25"}, "docker.io/")
+	want = []string{"docker.io/library/nginx:1.25"}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("ApplyDefaultRegistry(docker.io) = %v, want %v", got, want)
 	}
 }
 

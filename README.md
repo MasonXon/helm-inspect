@@ -105,6 +105,11 @@ docker.io/opencsghq/csghub-server:v2.6.1-ee
 quay.io/argoproj/argocli:v3.7.11
 ```
 
+References without a registry host default to Docker Hub: `nginx:1.25` becomes
+`docker.io/library/nginx:1.25` (single-name refs get Docker's implicit
+`library/` namespace). Use `--default-registry` to point bare refs at a mirror
+or private registry instead.
+
 ### Verify images
 
 Verification can run directly on a list of references, or against the images a
@@ -187,7 +192,7 @@ this usually means missing, or private without credentials); other failures as
 | `--include-crds` | Include CRDs from `crds/` (default true; disable with `--no-include-crds`). |
 | `--images` | Print the image list instead of YAML. |
 | `--images-all` | Like `--images`, plus a deep scan for image-like values. |
-| `--default-registry` | Prefix refs that have no registry host, e.g. `registry.example.com/ns`. |
+| `--default-registry` | Prefix refs that have no registry host (default `docker.io`). |
 | `--verify` | Verify collected images instead of printing YAML. |
 | `--mode` | Verification mode: `exists` or `arch`. |
 | `--json` | JSON output for verification. |

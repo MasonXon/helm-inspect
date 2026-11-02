@@ -132,13 +132,19 @@ func normalizeKey(k string) string {
 	return k
 }
 
+// defaultRegistry is used when no --default-registry is given: a reference
+// without a registry host is a Docker Hub reference.
+const defaultRegistry = "docker.io"
+
 // ApplyDefaultRegistry prefixes references that do not name a registry with
-// registry, e.g. "redis:7.8" -> "registry.example.com/ns/redis:7.8".
+// registry, e.g. "redis:7.8" -> "registry.example.com/ns/redis:7.8". When
+// registry is empty it defaults to docker.io, and single-component references
+// get Docker's implicit "library" namespace (nginx -> docker.io/library/nginx).
 // References that already start with a registry host are returned unchanged.
 func ApplyDefaultRegistry(refs []string, registry string) []string {
 	registry = strings.TrimRight(strings.TrimSpace(registry), "/")
 	if registry == "" {
-		return refs
+		registry = defaultRegistry
 	}
 	out := make([]string, len(refs))
 	for i, ref := range refs {
@@ -146,9 +152,23 @@ func ApplyDefaultRegistry(refs []string, registry string) []string {
 			out[i] = ref
 			continue
 		}
+		if isDockerHub(registry) && !strings.Contains(ref, "/") {
+			out[i] = registry + "/library/" + ref
+			continue
+		}
 		out[i] = registry + "/" + ref
 	}
 	return out
+}
+
+// isDockerHub reports whether registry names Docker Hub, whose single-name
+// images live under the implicit "library" namespace.
+func isDockerHub(registry string) bool {
+	switch registry {
+	case "docker.io", "index.docker.io", "registry-1.docker.io":
+		return true
+	}
+	return false
 }
 
 // hasRegistryPrefix reports whether ref begins with an explicit registry host.

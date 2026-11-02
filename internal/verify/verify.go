@@ -37,7 +37,7 @@ type VerifyCmd struct {
 	Stream          bool     `help:"Print results as each image completes (NDJSON when combined with --json)."`
 	JSON            bool     `name:"json" help:"Output results as JSON."`
 	Workers         int      `help:"Number of concurrent checks." default:"8"`
-	DefaultRegistry string   `name:"default-registry" help:"Prefix images that have no registry host, e.g. registry.example.com/ns."`
+	DefaultRegistry string   `name:"default-registry" help:"Prefix images that have no registry host (default docker.io)."`
 }
 
 // Run verifies the gathered images.

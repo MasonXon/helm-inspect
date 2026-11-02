@@ -32,7 +32,7 @@ type commonFlags struct {
 	IncludeCRDs     bool     `name:"include-crds" help:"Include CRDs from the chart's crds/ directory." default:"true" negatable:"true"`
 	Images          bool     `help:"Print the deduplicated container image list instead of YAML."`
 	ImagesAll       bool     `name:"images-all" help:"Like --images, but also scan ConfigMaps/annotations/env for image-like values."`
-	DefaultRegistry string   `name:"default-registry" help:"Prefix images that have no registry host, e.g. registry.example.com/ns."`
+	DefaultRegistry string   `name:"default-registry" help:"Prefix images that have no registry host (default docker.io)."`
 	Verify          bool     `help:"Verify the collected images (existence, linux/amd64+arm64, size sanity) instead of printing YAML."`
 	VerifyMode      string   `name:"mode" enum:"exists,arch" default:"exists" help:"With --verify: exists (existence only) or arch (existence + linux/amd64/arm64)."`
 	JSON            bool     `name:"json" help:"With --verify, output JSON instead of a table."`
