@@ -36,6 +36,27 @@ make build-all
 Prebuilt binaries are published on the
 [releases page](https://github.com/MasonXon/helm2yaml/releases).
 
+## Use as a GitHub Action
+
+The repository ships a composite action that installs the release binary and
+runs it on the runner:
+
+```yaml
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: MasonXon/helm2yaml@v1.0.0
+        with:
+          args: local ./chart --verify --mode arch
+```
+
+`args` is passed to the CLI verbatim, so any subcommand works. The action
+downloads the binary matching the ref it was called with and falls back to the
+latest release for moving tags such as `@v1`; pin a full version tag to run
+exactly that release.
+
 ## Usage
 
 ### Render a remote chart
@@ -182,6 +203,7 @@ binaries are killed by the OS at startup, so the Makefile skips them.
 | Path | Purpose |
 | --- | --- |
 | `cmd/helm2yaml/main.go` | CLI definition (kong) and version wiring. |
+| `action.yml` | Composite GitHub Action that installs and runs the release binary. |
 | `internal/render/` | Chart download/load, dependency check, offline rendering; the `remote` and `local` commands. |
 | `internal/images/` | Image reference extraction and filtering from rendered YAML. |
 | `internal/verify/` | Registry checks, concurrency, retries, and table/JSON output; the `verify` command. |

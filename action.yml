@@ -1,0 +1,71 @@
+name: helm-verify
+description: Verify that the images a Helm chart deploys exist and support linux/amd64 and linux/arm64
+author: MasonXon
+branding:
+  icon: shield
+  color: blue
+
+inputs:
+  args:
+    description: Arguments passed to helm2yaml, e.g. "local ./chart --images".
+    required: true
+  version:
+    description: Release version to use. Defaults to the ref the action was called with, then to the latest release.
+    required: false
+    default: ""
+  working-directory:
+    description: Directory to run helm2yaml in.
+    required: false
+    default: "."
+
+runs:
+  using: composite
+  steps:
+    - name: Install helm2yaml
+      shell: bash
+      env:
+        INPUT_VERSION: ${{ inputs.version }}
+        ACTION_REF: ${{ github.action_ref }}
+        ACTION_REPOSITORY: ${{ github.action_repository }}
+      run: |
+        set -euo pipefail
+
+        case "$(uname -s)" in
+          Linux*) os=linux ;;
+          Darwin*) os=darwin ;;
+          MINGW*|MSYS*|CYGWIN*) os=windows ;;
+          *) echo "helm2yaml: unsupported OS: $(uname -s)" >&2; exit 1 ;;
+        esac
+        case "$(uname -m)" in
+          x86_64|amd64) arch=amd64 ;;
+          arm64|aarch64) arch=arm64 ;;
+          *) echo "helm2yaml: unsupported architecture: $(uname -m)" >&2; exit 1 ;;
+        esac
+
+        ext=""
+        [ "$os" = windows ] && ext=".exe"
+
+        repo="${ACTION_REPOSITORY:-MasonXon/helm2yaml}"
+        version="${INPUT_VERSION:-$ACTION_REF}"
+        base="https://github.com/${repo}/releases"
+
+        # Prefer the exact ref so a pinned version runs the binary it names;
+        # fall back to the latest release for moving tags (v1) or branch refs.
+        asset="helm2yaml-${os}-${arch}${ext}"
+        if [ -n "$version" ] && curl -fsIL "${base}/download/${version}/${asset}" >/dev/null 2>&1; then
+          url="${base}/download/${version}/${asset}"
+        else
+          url="${base}/latest/download/${asset}"
+        fi
+
+        bin="${RUNNER_TEMP:-/tmp}/helm2yaml-bin"
+        mkdir -p "$bin"
+        echo "helm2yaml: downloading ${url}"
+        curl -fsSL -o "${bin}/helm2yaml${ext}" "$url"
+        chmod +x "${bin}/helm2yaml${ext}"
+        echo "$bin" >> "$GITHUB_PATH"
+
+    - name: Run helm2yaml
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: helm2yaml ${{ inputs.args }}
