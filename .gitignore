@@ -1,5 +1,5 @@
 # Build artifacts
-/helm2yaml
+/helm-verify
 /dist/
 *.exe
 *.test

@@ -1,4 +1,4 @@
-# helm2yaml
+# helm-verify
 
 Render Helm charts to plain YAML — from a remote chart repository at a specific
 version, or from a local chart directory / `.tgz` — and optionally collect and
@@ -24,7 +24,7 @@ client-only mode, so no Kubernetes cluster is contacted.
 
 ```bash
 # with Go 1.26+
-go install github.com/MasonXon/helm-verify/cmd/helm2yaml@latest
+go install github.com/MasonXon/helm-verify/cmd/helm-verify@latest
 
 # or build from source (host binary, upx-compressed where supported)
 make build
@@ -62,7 +62,7 @@ exactly that release.
 ### Render a remote chart
 
 ```bash
-helm2yaml remote \
+helm-verify remote \
   --repo https://charts.bitnami.com/bitnami \
   --chart nginx \
   --version 18.3.5 \
@@ -76,8 +76,8 @@ helm2yaml remote \
 ### Render a local chart
 
 ```bash
-helm2yaml local ./charts/my-app -f values.yaml
-helm2yaml local ./charts/my-app-0.1.0.tgz
+helm-verify local ./charts/my-app -f values.yaml
+helm-verify local ./charts/my-app-0.1.0.tgz
 ```
 
 Local charts must have their dependencies vendored under `charts/`
@@ -88,10 +88,10 @@ producing incomplete output when a declared dependency is missing.
 
 ```bash
 # image fields only (e.g. containers[].image)
-helm2yaml remote --repo ... --chart ... --version ... --images
+helm-verify remote --repo ... --chart ... --version ... --images
 
 # also scan ConfigMaps, annotations, and env for image-like values
-helm2yaml remote --repo ... --chart ... --version ... --images-all
+helm-verify remote --repo ... --chart ... --version ... --images-all
 ```
 
 Output is one reference per line, sorted and deduplicated:
@@ -108,16 +108,16 @@ chart renders.
 
 ```bash
 # existence only (default)
-helm2yaml verify docker.io/library/nginx:1.25 quay.io/argoproj/argocli:v3.7.11
+helm-verify verify docker.io/library/nginx:1.25 quay.io/argoproj/argocli:v3.7.11
 
 # existence + linux/amd64/arm64 + size sanity
-helm2yaml verify -f images.txt --mode arch
+helm-verify verify -f images.txt --mode arch
 
 # verify what a chart deploys
-helm2yaml remote --repo ... --chart ... --version ... --verify --mode arch
+helm-verify remote --repo ... --chart ... --version ... --verify --mode arch
 
 # stream results as each image completes, as NDJSON
-helm2yaml verify -f images.txt --stream --json
+helm-verify verify -f images.txt --stream --json
 ```
 
 Example table output:
@@ -202,7 +202,7 @@ binaries are killed by the OS at startup, so the Makefile skips them.
 
 | Path | Purpose |
 | --- | --- |
-| `cmd/helm2yaml/main.go` | CLI definition (kong) and version wiring. |
+| `cmd/helm-verify/main.go` | CLI definition (kong) and version wiring. |
 | `action.yml` | Composite GitHub Action that installs and runs the release binary. |
 | `internal/render/` | Chart download/load, dependency check, offline rendering; the `remote` and `local` commands. |
 | `internal/images/` | Image reference extraction and filtering from rendered YAML. |

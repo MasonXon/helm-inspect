@@ -1,4 +1,4 @@
-BINARY    := helm2yaml
+BINARY    := helm-verify
 DIST      := dist
 VERSION   ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 LDFLAGS   := -s -w -X main.buildVersion=$(VERSION)
@@ -13,7 +13,7 @@ all: build
 
 ## build: compile for the host and compress with upx
 build:
-	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o $(BINARY) ./cmd/helm2yaml
+	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o $(BINARY) ./cmd/helm-verify
 	@if [ "$$(go env GOOS)" = "darwin" ]; then \
 		echo "upx: skipped, packed Mach-O binaries are killed by macOS"; \
 	else \
@@ -28,7 +28,7 @@ build-all:
 		ext=""; [ "$$os" = "windows" ] && ext=".exe"; \
 		out="$(DIST)/$(BINARY)-$$os-$$arch$$ext"; \
 		echo ">> $$out"; \
-		CGO_ENABLED=0 GOOS=$$os GOARCH=$$arch go build -trimpath -ldflags "$(LDFLAGS)" -o "$$out" ./cmd/helm2yaml || exit 1; \
+		CGO_ENABLED=0 GOOS=$$os GOARCH=$$arch go build -trimpath -ldflags "$(LDFLAGS)" -o "$$out" ./cmd/helm-verify || exit 1; \
 		if [ "$$os" = "darwin" ]; then \
 			echo "   upx: skipped, packed Mach-O binaries are killed by macOS"; \
 		else \

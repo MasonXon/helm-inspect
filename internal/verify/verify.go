@@ -175,7 +175,7 @@ func checkImage(parent context.Context, refStr, mode string) ImageCheck {
 	opts := []remote.Option{
 		remote.WithContext(ctx),
 		remote.WithAuthFromKeychain(authn.DefaultKeychain),
-		remote.WithUserAgent("helm2yaml"),
+		remote.WithUserAgent("helm-verify"),
 	}
 
 	if mode == modeExists {

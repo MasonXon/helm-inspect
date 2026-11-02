@@ -14,7 +14,7 @@ var buildVersion = "dev"
 func main() {
 	var app CLI
 	k := kong.Parse(&app,
-		kong.Name("helm2yaml"),
+		kong.Name("helm-verify"),
 		kong.Description("Render Helm charts to YAML from a remote repository at a given version or from a local chart."),
 		kong.UsageOnError(),
 	)

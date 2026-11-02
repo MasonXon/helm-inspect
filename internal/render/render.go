@@ -58,7 +58,7 @@ type LocalCmd struct {
 
 // Run downloads and renders a chart from a remote repository.
 func (c *RemoteCmd) Run() error {
-	tmp, err := os.MkdirTemp("", "helm2yaml-*")
+	tmp, err := os.MkdirTemp("", "helm-verify-*")
 	if err != nil {
 		return err
 	}

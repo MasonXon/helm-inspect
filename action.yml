@@ -7,21 +7,21 @@ branding:
 
 inputs:
   args:
-    description: Arguments passed to helm2yaml, e.g. "local ./chart --images".
+    description: Arguments passed to helm-verify, e.g. "local ./chart --images".
     required: true
   version:
     description: Release version to use. Defaults to the ref the action was called with, then to the latest release.
     required: false
     default: ""
   working-directory:
-    description: Directory to run helm2yaml in.
+    description: Directory to run helm-verify in.
     required: false
     default: "."
 
 runs:
   using: composite
   steps:
-    - name: Install helm2yaml
+    - name: Install helm-verify
       shell: bash
       env:
         INPUT_VERSION: ${{ inputs.version }}
@@ -34,12 +34,12 @@ runs:
           Linux*) os=linux ;;
           Darwin*) os=darwin ;;
           MINGW*|MSYS*|CYGWIN*) os=windows ;;
-          *) echo "helm2yaml: unsupported OS: $(uname -s)" >&2; exit 1 ;;
+          *) echo "helm-verify: unsupported OS: $(uname -s)" >&2; exit 1 ;;
         esac
         case "$(uname -m)" in
           x86_64|amd64) arch=amd64 ;;
           arm64|aarch64) arch=arm64 ;;
-          *) echo "helm2yaml: unsupported architecture: $(uname -m)" >&2; exit 1 ;;
+          *) echo "helm-verify: unsupported architecture: $(uname -m)" >&2; exit 1 ;;
         esac
 
         ext=""
@@ -51,21 +51,21 @@ runs:
 
         # Prefer the exact ref so a pinned version runs the binary it names;
         # fall back to the latest release for moving tags (v1) or branch refs.
-        asset="helm2yaml-${os}-${arch}${ext}"
+        asset="helm-verify-${os}-${arch}${ext}"
         if [ -n "$version" ] && curl -fsIL "${base}/download/${version}/${asset}" >/dev/null 2>&1; then
           url="${base}/download/${version}/${asset}"
         else
           url="${base}/latest/download/${asset}"
         fi
 
-        bin="${RUNNER_TEMP:-/tmp}/helm2yaml-bin"
+        bin="${RUNNER_TEMP:-/tmp}/helm-verify-bin"
         mkdir -p "$bin"
-        echo "helm2yaml: downloading ${url}"
-        curl -fsSL -o "${bin}/helm2yaml${ext}" "$url"
-        chmod +x "${bin}/helm2yaml${ext}"
+        echo "helm-verify: downloading ${url}"
+        curl -fsSL -o "${bin}/helm-verify${ext}" "$url"
+        chmod +x "${bin}/helm-verify${ext}"
         echo "$bin" >> "$GITHUB_PATH"
 
-    - name: Run helm2yaml
+    - name: Run helm-verify
       shell: bash
       working-directory: ${{ inputs.working-directory }}
-      run: helm2yaml ${{ inputs.args }}
+      run: helm-verify ${{ inputs.args }}
