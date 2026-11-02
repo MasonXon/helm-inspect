@@ -206,6 +206,33 @@ func TestVerifyImagesEmits(t *testing.T) {
 	}
 }
 
+func TestRunFailsOnMissingArch(t *testing.T) {
+	host := startRegistry(t)
+	ref := pushSingleArch(t, host, "app/single", "amd64")
+
+	err := Run([]string{ref}, false, false, 1, modeArch)
+	if err == nil {
+		t.Fatal("Run returned nil for a single-arch image in arch mode, want failure")
+	}
+}
+
+func TestRunFailsOnRegistryError(t *testing.T) {
+	// Port 1 on loopback is never listening, so the check fails fast.
+	err := Run([]string{"127.0.0.1:1/nope:1"}, false, false, 1, modeArch)
+	if err == nil {
+		t.Fatal("Run returned nil for an unreachable registry, want failure")
+	}
+}
+
+func TestRunSucceedsForMultiArch(t *testing.T) {
+	host := startRegistry(t)
+	ref := pushIndex(t, host, "app/ok", 1, 2)
+
+	if err := Run([]string{ref}, false, false, 1, modeArch); err != nil {
+		t.Fatalf("Run returned %v for a multi-arch image, want nil", err)
+	}
+}
+
 func TestHasPlatform(t *testing.T) {
 	ps := map[string]struct{}{"linux/amd64": {}, "linux/arm64/v8": {}, "windows/amd64": {}}
 	cases := map[string]bool{
