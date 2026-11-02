@@ -45,7 +45,7 @@ runs:
         ext=""
         [ "$os" = windows ] && ext=".exe"
 
-        repo="${ACTION_REPOSITORY:-MasonXon/helm2yaml}"
+        repo="${ACTION_REPOSITORY:-MasonXon/helm-verify}"
         version="${INPUT_VERSION:-$ACTION_REF}"
         base="https://github.com/${repo}/releases"
 

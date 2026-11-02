@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/MasonXon/helm2yaml/internal/images"
-	"github.com/MasonXon/helm2yaml/internal/verify"
+	"github.com/MasonXon/helm-verify/internal/images"
+	"github.com/MasonXon/helm-verify/internal/verify"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"

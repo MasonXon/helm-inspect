@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/MasonXon/helm2yaml/internal/render"
-	"github.com/MasonXon/helm2yaml/internal/verify"
+	"github.com/MasonXon/helm-verify/internal/render"
+	"github.com/MasonXon/helm-verify/internal/verify"
 	"github.com/alecthomas/kong"
 )
 

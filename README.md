@@ -24,7 +24,7 @@ client-only mode, so no Kubernetes cluster is contacted.
 
 ```bash
 # with Go 1.26+
-go install github.com/MasonXon/helm2yaml/cmd/helm2yaml@latest
+go install github.com/MasonXon/helm-verify/cmd/helm2yaml@latest
 
 # or build from source (host binary, upx-compressed where supported)
 make build
@@ -34,7 +34,7 @@ make build-all
 ```
 
 Prebuilt binaries are published on the
-[releases page](https://github.com/MasonXon/helm2yaml/releases).
+[releases page](https://github.com/MasonXon/helm-verify/releases).
 
 ## Use as a GitHub Action
 
@@ -47,7 +47,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: MasonXon/helm2yaml@v1.0.0
+      - uses: MasonXon/helm-verify@v1.0.0
         with:
           args: local ./chart --verify --mode arch
 ```

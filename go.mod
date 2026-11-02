@@ -1,4 +1,4 @@
-module github.com/MasonXon/helm2yaml
+module github.com/MasonXon/helm-verify
 
 go 1.26.0
 
