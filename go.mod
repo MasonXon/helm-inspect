@@ -1,4 +1,4 @@
-module helm2yaml
+module github.com/MasonXon/helm2yaml
 
 go 1.26.0
 
