@@ -47,7 +47,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: MasonXon/helm-verify@v1.0.0
+      - uses: MasonXon/helm-verify@v1.0.1
         with:
           args: local ./chart --verify --mode arch
 ```
