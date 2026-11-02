@@ -16,6 +16,7 @@ import (
 	"text/tabwriter"
 	"time"
 
+	imgref "github.com/MasonXon/helm-inspect/internal/images"
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
@@ -30,21 +31,23 @@ const imageCheckTimeout = 30 * time.Second
 // VerifyCmd verifies image references given as arguments, from a file, or from
 // stdin.
 type VerifyCmd struct {
-	Images  []string `arg:"" optional:"" help:"Image references to verify."`
-	File    string   `short:"f" help:"Read images from a file, one per line ('-' for stdin)."`
-	Mode    string   `enum:"exists,arch" default:"exists" help:"exists: existence only; arch: existence + linux/amd64/arm64 (+ size sanity)."`
-	Stream  bool     `help:"Print results as each image completes (NDJSON when combined with --json)."`
-	JSON    bool     `name:"json" help:"Output results as JSON."`
-	Workers int      `help:"Number of concurrent checks." default:"8"`
+	Images          []string `arg:"" optional:"" help:"Image references to verify."`
+	File            string   `short:"f" help:"Read images from a file, one per line ('-' for stdin)."`
+	Mode            string   `enum:"exists,arch" default:"exists" help:"exists: existence only; arch: existence + linux/amd64/arm64 (+ size sanity)."`
+	Stream          bool     `help:"Print results as each image completes (NDJSON when combined with --json)."`
+	JSON            bool     `name:"json" help:"Output results as JSON."`
+	Workers         int      `help:"Number of concurrent checks." default:"8"`
+	DefaultRegistry string   `name:"default-registry" help:"Prefix images that have no registry host, e.g. registry.example.com/ns."`
 }
 
 // Run verifies the gathered images.
 func (c *VerifyCmd) Run() error {
-	images, err := gatherImages(c.Images, c.File)
+	imgs, err := gatherImages(c.Images, c.File)
 	if err != nil {
 		return err
 	}
-	return Run(images, c.JSON, c.Stream, c.Workers, c.Mode)
+	imgs = imgref.ApplyDefaultRegistry(imgs, c.DefaultRegistry)
+	return Run(imgs, c.JSON, c.Stream, c.Workers, c.Mode)
 }
 
 // ImageCheck is the result of verifying a single image reference.

@@ -53,6 +53,51 @@ data:
 	}
 }
 
+func TestApplyDefaultRegistry(t *testing.T) {
+	refs := []string{
+		"redis:7.8",
+		"opencsghq/csghub-server:v2.6.1-ee",
+		"docker.io/library/nginx:1.25",
+		"gcr.io/foo/bar@sha256:b1af8bda6c1d32b1cf5fbf8f1f6068c5007a5cebf091039fdea83b88b1fd87f4",
+		"localhost:5000/app:1",
+		"quay.io/argoproj/argocli:v3.7.11",
+	}
+	got := ApplyDefaultRegistry(refs, "registry.opencsg.com/opencsg/")
+	want := []string{
+		"registry.opencsg.com/opencsg/redis:7.8",
+		"registry.opencsg.com/opencsg/opencsghq/csghub-server:v2.6.1-ee",
+		"docker.io/library/nginx:1.25",
+		"gcr.io/foo/bar@sha256:b1af8bda6c1d32b1cf5fbf8f1f6068c5007a5cebf091039fdea83b88b1fd87f4",
+		"localhost:5000/app:1",
+		"quay.io/argoproj/argocli:v3.7.11",
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("ApplyDefaultRegistry =\n%v\nwant\n%v", got, want)
+	}
+
+	// An empty registry leaves references untouched.
+	if got := ApplyDefaultRegistry(refs, "  "); !reflect.DeepEqual(got, refs) {
+		t.Errorf("ApplyDefaultRegistry(empty) = %v, want unchanged", got)
+	}
+}
+
+func TestHasRegistryPrefix(t *testing.T) {
+	cases := map[string]bool{
+		"redis:7.8":                  false,
+		"opencsghq/dataflow:1":       false,
+		"library/nginx:1":            false,
+		"docker.io/library/nginx:1":  true,
+		"localhost/app:1":            true,
+		"localhost:5000/app:1":       true,
+		"Registry.example.com/app:1": true,
+	}
+	for ref, want := range cases {
+		if got := hasRegistryPrefix(ref); got != want {
+			t.Errorf("hasRegistryPrefix(%q) = %v, want %v", ref, got, want)
+		}
+	}
+}
+
 func TestLooksLikeImage(t *testing.T) {
 	cases := []struct {
 		key, value string

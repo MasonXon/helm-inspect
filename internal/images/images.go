@@ -132,6 +132,39 @@ func normalizeKey(k string) string {
 	return k
 }
 
+// ApplyDefaultRegistry prefixes references that do not name a registry with
+// registry, e.g. "redis:7.8" -> "registry.example.com/ns/redis:7.8".
+// References that already start with a registry host are returned unchanged.
+func ApplyDefaultRegistry(refs []string, registry string) []string {
+	registry = strings.TrimRight(strings.TrimSpace(registry), "/")
+	if registry == "" {
+		return refs
+	}
+	out := make([]string, len(refs))
+	for i, ref := range refs {
+		if hasRegistryPrefix(ref) {
+			out[i] = ref
+			continue
+		}
+		out[i] = registry + "/" + ref
+	}
+	return out
+}
+
+// hasRegistryPrefix reports whether ref begins with an explicit registry host.
+// It follows Docker's rule: with a path separator present, the first component
+// is a registry when it contains "." or ":", is "localhost", or has uppercase.
+func hasRegistryPrefix(ref string) bool {
+	i := strings.IndexByte(ref, '/')
+	if i < 0 {
+		return false
+	}
+	first := ref[:i]
+	return strings.ContainsAny(first, ".:") ||
+		first == "localhost" ||
+		first != strings.ToLower(first)
+}
+
 // FormatList renders one image per line, with a trailing newline when
 // non-empty.
 func FormatList(images []string) string {

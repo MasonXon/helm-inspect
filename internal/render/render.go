@@ -21,23 +21,24 @@ import (
 
 // commonFlags are the rendering options shared by the remote and local commands.
 type commonFlags struct {
-	ValueFiles  []string `short:"f" help:"Values YAML file (may be repeated, comma-separated, a URL, or '-' for stdin)."`
-	SetValues   []string `name:"set" help:"Set values on the command line (key=val, comma-separated, repeatable)."`
-	SetString   []string `name:"set-string" help:"Set STRING values on the command line."`
-	SetFile     []string `name:"set-file" help:"Set values from files via key=path (repeatable)."`
-	SetJSON     []string `name:"set-json" help:"Set values from JSON via key=json (repeatable)."`
-	Namespace   string   `short:"n" help:"Kubernetes namespace used for rendering." default:"default"`
-	Name        string   `help:"Release name used for rendering." default:"release-name"`
-	KubeVersion string   `help:"Kubernetes version for capability checks, e.g. 1.29.3."`
-	IncludeCRDs bool     `name:"include-crds" help:"Include CRDs from the chart's crds/ directory." default:"true" negatable:"true"`
-	Images      bool     `help:"Print the deduplicated container image list instead of YAML."`
-	ImagesAll   bool     `name:"images-all" help:"Like --images, but also scan ConfigMaps/annotations/env for image-like values."`
-	Verify      bool     `help:"Verify the collected images (existence, linux/amd64+arm64, size sanity) instead of printing YAML."`
-	VerifyMode  string   `name:"mode" enum:"exists,arch" default:"exists" help:"With --verify: exists (existence only) or arch (existence + linux/amd64/arm64)."`
-	JSON        bool     `name:"json" help:"With --verify, output JSON instead of a table."`
-	Stream      bool     `help:"With --verify, print results as each image completes."`
-	Workers     int      `help:"With --verify, number of concurrent checks." default:"8"`
-	Output      string   `short:"o" help:"Write output to this file (empty or '-' writes to stdout)."`
+	ValueFiles      []string `short:"f" help:"Values YAML file (may be repeated, comma-separated, a URL, or '-' for stdin)."`
+	SetValues       []string `name:"set" help:"Set values on the command line (key=val, comma-separated, repeatable)."`
+	SetString       []string `name:"set-string" help:"Set STRING values on the command line."`
+	SetFile         []string `name:"set-file" help:"Set values from files via key=path (repeatable)."`
+	SetJSON         []string `name:"set-json" help:"Set values from JSON via key=json (repeatable)."`
+	Namespace       string   `short:"n" help:"Kubernetes namespace used for rendering." default:"default"`
+	Name            string   `help:"Release name used for rendering." default:"release-name"`
+	KubeVersion     string   `help:"Kubernetes version for capability checks, e.g. 1.29.3."`
+	IncludeCRDs     bool     `name:"include-crds" help:"Include CRDs from the chart's crds/ directory." default:"true" negatable:"true"`
+	Images          bool     `help:"Print the deduplicated container image list instead of YAML."`
+	ImagesAll       bool     `name:"images-all" help:"Like --images, but also scan ConfigMaps/annotations/env for image-like values."`
+	DefaultRegistry string   `name:"default-registry" help:"Prefix images that have no registry host, e.g. registry.example.com/ns."`
+	Verify          bool     `help:"Verify the collected images (existence, linux/amd64+arm64, size sanity) instead of printing YAML."`
+	VerifyMode      string   `name:"mode" enum:"exists,arch" default:"exists" help:"With --verify: exists (existence only) or arch (existence + linux/amd64/arm64)."`
+	JSON            bool     `name:"json" help:"With --verify, output JSON instead of a table."`
+	Stream          bool     `help:"With --verify, print results as each image completes."`
+	Workers         int      `help:"With --verify, number of concurrent checks." default:"8"`
+	Output          string   `short:"o" help:"Write output to this file (empty or '-' writes to stdout)."`
 }
 
 // RemoteCmd renders a chart pulled from a chart repository.
@@ -172,18 +173,14 @@ func renderChart(chrt *chart.Chart, f commonFlags) error {
 		fmt.Fprintf(&out, "---\n# Source: %s\n%s\n", h.Path, h.Manifest)
 	}
 
-	if f.Verify {
+	if f.Verify || f.Images || f.ImagesAll {
 		imgs, err := images.Extract(out.String(), f.ImagesAll)
 		if err != nil {
 			return err
 		}
-		return verify.Run(imgs, f.JSON, f.Stream, f.Workers, f.VerifyMode)
-	}
-
-	if f.Images || f.ImagesAll {
-		imgs, err := images.Extract(out.String(), f.ImagesAll)
-		if err != nil {
-			return err
+		imgs = images.ApplyDefaultRegistry(imgs, f.DefaultRegistry)
+		if f.Verify {
+			return verify.Run(imgs, f.JSON, f.Stream, f.Workers, f.VerifyMode)
 		}
 		return writeOutput(images.FormatList(imgs), f.Output)
 	}

@@ -92,6 +92,10 @@ helm-inspect remote --repo ... --chart ... --version ... --images
 
 # also scan ConfigMaps, annotations, and env for image-like values
 helm-inspect remote --repo ... --chart ... --version ... --images-all
+
+# prefix refs that have no registry host
+helm-inspect remote --repo ... --chart ... --version ... --images \
+  --default-registry registry.opencsg.com/opencsg
 ```
 
 Output is one reference per line, sorted and deduplicated:
@@ -115,6 +119,9 @@ helm-inspect verify -f images.txt --mode arch
 
 # verify what a chart deploys
 helm-inspect remote --repo ... --chart ... --version ... --verify --mode arch
+
+# verify refs after prefixing bare names with a default registry
+helm-inspect verify -f images.txt --default-registry registry.opencsg.com/opencsg
 
 # stream results as each image completes, as NDJSON
 helm-inspect verify -f images.txt --stream --json
@@ -178,6 +185,7 @@ required architecture. A 404 is reported as `NOT FOUND`, other failures as
 | `--include-crds` | Include CRDs from `crds/` (default true; disable with `--no-include-crds`). |
 | `--images` | Print the image list instead of YAML. |
 | `--images-all` | Like `--images`, plus a deep scan for image-like values. |
+| `--default-registry` | Prefix refs that have no registry host, e.g. `registry.example.com/ns`. |
 | `--verify` | Verify collected images instead of printing YAML. |
 | `--mode` | Verification mode: `exists` or `arch`. |
 | `--json` | JSON output for verification. |
