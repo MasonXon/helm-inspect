@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/MasonXon/helm-verify/internal/images"
-	"github.com/MasonXon/helm-verify/internal/verify"
+	"github.com/MasonXon/helm-inspect/internal/images"
+	"github.com/MasonXon/helm-inspect/internal/verify"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
@@ -58,7 +58,7 @@ type LocalCmd struct {
 
 // Run downloads and renders a chart from a remote repository.
 func (c *RemoteCmd) Run() error {
-	tmp, err := os.MkdirTemp("", "helm-verify-*")
+	tmp, err := os.MkdirTemp("", "helm-inspect-*")
 	if err != nil {
 		return err
 	}

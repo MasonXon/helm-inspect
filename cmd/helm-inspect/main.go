@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/MasonXon/helm-verify/internal/render"
-	"github.com/MasonXon/helm-verify/internal/verify"
+	"github.com/MasonXon/helm-inspect/internal/render"
+	"github.com/MasonXon/helm-inspect/internal/verify"
 	"github.com/alecthomas/kong"
 )
 
@@ -14,7 +14,7 @@ var buildVersion = "dev"
 func main() {
 	var app CLI
 	k := kong.Parse(&app,
-		kong.Name("helm-verify"),
+		kong.Name("helm-inspect"),
 		kong.Description("Render Helm charts to YAML from a remote repository at a given version or from a local chart."),
 		kong.UsageOnError(),
 	)

@@ -1,5 +1,5 @@
 # Build artifacts
-/helm-verify
+/helm-inspect
 /dist/
 *.exe
 *.test

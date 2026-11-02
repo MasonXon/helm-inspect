@@ -1,4 +1,4 @@
-module github.com/MasonXon/helm-verify
+module github.com/MasonXon/helm-inspect
 
 go 1.26.0
 
