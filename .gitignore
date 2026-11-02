@@ -1,5 +1,6 @@
 # Build artifacts
 /helm2yaml
+/dist/
 *.exe
 *.test
 *.out
